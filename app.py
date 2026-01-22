@@ -9,88 +9,48 @@ HTML_TEMPLATE = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TikTok Saver - Sin Marca de Agua</title>
+    <title>TikTok Saver Pro</title>
     <style>
-        body { 
-            font-family: 'Segoe UI', sans-serif; background: #010101; 
-            color: white; display: flex; justify-content: center; 
-            align-items: center; height: 100vh; margin: 0; 
-        }
-        .card { 
-            background: #121212; padding: 30px; border-radius: 20px; 
-            box-shadow: 0 0 20px rgba(254, 44, 85, 0.2); 
-            width: 100%; max-width: 380px; text-align: center; border: 1px solid #333;
-        }
-        h1 { color: #fff; font-size: 26px; margin-bottom: 10px; }
-        .accent { color: #fe2c55; } /* Rojo TikTok */
-        input { 
-            width: 100%; padding: 15px; border: 2px solid #333; border-radius: 10px; 
-            margin-bottom: 20px; box-sizing: border-box; outline: none;
-            background: #1e1e1e; color: white; font-size: 16px;
-        }
-        input:focus { border-color: #25f4ee; } /* Cian TikTok */
-        button { 
-            background: #fe2c55; color: white; border: none; padding: 15px; 
-            border-radius: 10px; cursor: pointer; font-weight: bold; width: 100%;
-            font-size: 16px; transition: 0.3s;
-        }
-        button:hover { background: #ef2950; transform: scale(1.02); }
-        #result { margin-top: 25px; display: none; }
-        .thumb { width: 100%; border-radius: 15px; margin-bottom: 15px; border: 1px solid #444; }
-        .download-btn { 
-            display: block; background: #25f4ee; color: #000; 
-            text-decoration: none; padding: 12px; border-radius: 10px; 
-            font-weight: bold; margin-bottom: 10px;
-        }
-        .loader { display: none; color: #25f4ee; margin-top: 10px; font-weight: bold; }
+        body { font-family: sans-serif; background: #000; color: white; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .card { background: #111; padding: 25px; border-radius: 15px; width: 90%; max-width: 350px; text-align: center; border: 1px solid #fe2c55; }
+        input { width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 8px; border: none; box-sizing: border-box; }
+        button { background: #fe2c55; color: white; border: none; padding: 12px; width: 100%; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        #result { display: none; margin-top: 20px; }
+        .download-link { display: block; background: #25f4ee; color: black; padding: 10px; margin-top: 10px; border-radius: 8px; text-decoration: none; font-weight: bold; }
     </style>
 </head>
 <body>
     <div class="card">
-        <h1>TikTok <span class="accent">Saver</span></h1>
-        <p style="color: #888; font-size: 13px;">Descarga videos sin marca de agua</p>
-        <input type="text" id="videoUrl" placeholder="Pega el enlace de TikTok aquí...">
-        <button id="btnAction" onclick="getTikTok()">Obtener Video</button>
-        <div id="loader" class="loader">Procesando...</div>
-
+        <h2>TikTok <span style="color:#fe2c55">Saver</span></h2>
+        <input type="text" id="url" placeholder="Pega el link de TikTok aquí">
+        <button onclick="descargar()">Obtener Video</button>
+        <div id="loading" style="display:none; margin-top:10px;">⚡ Procesando...</div>
         <div id="result">
-            <img id="preview" class="thumb" src="">
-            <p id="title" style="font-size: 14px; margin-bottom: 15px;"></p>
-            <a id="downloadBtn" class="download-btn" href="" target="_blank">⬇️ Descargar MP4</a>
-            <button onclick="location.reload()" style="background: transparent; color: #888; font-size: 12px; border: none;">Limpiar</button>
+            <img id="thumb" src="" style="width:100%; border-radius:10px;">
+            <a id="link" class="download-link" href="" target="_blank">Descargar Video Sin Marca</a>
         </div>
     </div>
-
     <script>
-        async function getTikTok() {
-            const url = document.getElementById('videoUrl').value;
-            if (!url) return alert("Por favor pega un enlace");
-            
-            document.getElementById('btnAction').style.display = 'none';
-            document.getElementById('loader').style.display = 'block';
-
+        async function descargar() {
+            const url = document.getElementById('url').value;
+            if(!url) return alert("Pega un link");
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('result').style.display = 'none';
             try {
-                const response = await fetch('/download', {
+                const res = await fetch('/download', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ url: url })
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({url})
                 });
-                
-                const data = await response.json();
-                document.getElementById('loader').style.display = 'none';
-
-                if (data.error) {
-                    alert("No se pudo obtener el video. Asegúrate de que el link sea correcto.");
-                    document.getElementById('btnAction').style.display = 'block';
-                } else {
-                    document.getElementById('preview').src = data.thumbnail;
-                    document.getElementById('title').innerText = data.title;
-                    document.getElementById('downloadBtn').href = data.url;
-                    document.getElementById('result').style.display = 'block';
-                }
-            } catch (e) {
-                alert("Error de conexión");
-                document.getElementById('btnAction').style.display = 'block';
+                const data = await res.json();
+                if(data.error) throw new Error();
+                document.getElementById('thumb').src = data.thumbnail;
+                document.getElementById('link').href = data.url;
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('result').style.display = 'block';
+            } catch {
+                alert("Error al obtener el video. Intenta con otro link.");
+                document.getElementById('loading').style.display = 'none';
             }
         }
     </script>
@@ -98,47 +58,43 @@ HTML_TEMPLATE = """
 </html>
 """
 
+@app.route('/')
+def index():
+    return render_template_string(HTML_TEMPLATE)
+
 @app.route('/download', methods=['POST'])
 def download():
     data = request.json
-    video_url = data.get('url')
+    url = data.get('url')
     
     ydl_opts = {
         'format': 'best',
         'quiet': True,
         'no_warnings': True,
-        # Estas cabeceras son el truco para que TikTok no bloquee al servidor
         'http_headers': {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.5',
-            'Referer': 'https://www.tiktok.com/',
+            'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1',
+            'Referer': 'https://www.tiktok.com/'
         }
     }
     
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(video_url, download=False)
+            info = ydl.extract_info(url, download=False)
+            video_url = info.get('url')
             
-            # Buscamos el video limpio sin marca de agua
-            clean_url = None
-            formats = info.get('formats', [])
-            
-            # Prioridad 1: Formato sin marca de agua específico
-            for f in formats:
+            # Buscar el formato específico sin marca de agua
+            for f in info.get('formats', []):
                 if f.get('format_id') == 'download_addr-0':
-                    clean_url = f.get('url')
+                    video_url = f.get('url')
                     break
             
-            # Prioridad 2: El mejor formato si el anterior falla
-            if not clean_url:
-                clean_url = info.get('url')
-            
             return jsonify({
-                "title": info.get('title', 'Video de TikTok'),
-                "url": clean_url,
-                "thumbnail": info.get('thumbnail')
+                "url": video_url,
+                "thumbnail": info.get('thumbnail'),
+                "title": info.get('title')
             })
     except Exception as e:
-        print(f"Error detectado: {e}") # Esto saldrá en los logs de Render
-        return jsonify({"error": "No se pudo obtener el video"}), 500
+        return jsonify({"error": str(e)}), 500
+
+if __name__ == '__main__':
+    app.run()
