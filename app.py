@@ -98,23 +98,21 @@ HTML_TEMPLATE = """
 </html>
 """
 
-@app.route('/')
-def index():
-    return render_template_string(HTML_TEMPLATE)
-
 @app.route('/download', methods=['POST'])
 def download():
     data = request.json
     video_url = data.get('url')
     
-    # Configuramos yt-dlp para simular un dispositivo móvil
     ydl_opts = {
         'format': 'best',
         'quiet': True,
         'no_warnings': True,
+        # Estas cabeceras son el truco para que TikTok no bloquee al servidor
         'http_headers': {
-            'User-Agent': 'Mozilla/5.0 (Linux; Android 10; SM-G981B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.162 Mobile Safari/537.36',
-            'Referer': 'https://www.tiktok.com/'
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.5',
+            'Referer': 'https://www.tiktok.com/',
         }
     }
     
@@ -122,14 +120,19 @@ def download():
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(video_url, download=False)
             
-            # Intentamos buscar el link directo sin marca (normalmente el 'url' principal en TikTok)
-            clean_url = info.get('url')
+            # Buscamos el video limpio sin marca de agua
+            clean_url = None
+            formats = info.get('formats', [])
             
-            # Si hay una lista de formatos, buscamos el que no tenga marca de agua
-            for f in info.get('formats', []):
-                if f.get('format_id') == 'download_addr-0': # ID común para video limpio
+            # Prioridad 1: Formato sin marca de agua específico
+            for f in formats:
+                if f.get('format_id') == 'download_addr-0':
                     clean_url = f.get('url')
                     break
+            
+            # Prioridad 2: El mejor formato si el anterior falla
+            if not clean_url:
+                clean_url = info.get('url')
             
             return jsonify({
                 "title": info.get('title', 'Video de TikTok'),
@@ -137,7 +140,5 @@ def download():
                 "thumbnail": info.get('thumbnail')
             })
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-if __name__ == '__main__':
-    app.run()
+        print(f"Error detectado: {e}") # Esto saldrá en los logs de Render
+        return jsonify({"error": "No se pudo obtener el video"}), 500
